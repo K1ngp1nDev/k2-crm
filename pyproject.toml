@@ -1,0 +1,11 @@
+[project]
+name = "k2-erp-orders"
+version = "1.0.0"
+description = "Order accounting module for K2 ERP (test task)"
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+# Make the top-level `app` package importable so `pytest` works without `-m`.
+pythonpath = ["."]

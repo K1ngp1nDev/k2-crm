@@ -1,0 +1,29 @@
+services:
+  app:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      # Default: SQLite on a persisted volume.
+      # For PostgreSQL, run with the "postgres" profile and set:
+      #   DATABASE_URL=postgresql+psycopg://k2:k2@db:5432/k2_erp
+      DATABASE_URL: ${DATABASE_URL:-sqlite:////data/k2_erp.db}
+    volumes:
+      - app-data:/data
+
+  # Optional PostgreSQL — enable with:  docker compose --profile postgres up
+  db:
+    image: postgres:16-alpine
+    profiles: ["postgres"]
+    environment:
+      POSTGRES_USER: k2
+      POSTGRES_PASSWORD: k2
+      POSTGRES_DB: k2_erp
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+
+volumes:
+  app-data:
+  pg-data:

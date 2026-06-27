@@ -1,0 +1,13 @@
+# Keep the build context small and prevent the host's (wrong-platform)
+# node_modules / build artifacts from clobbering the image.
+**/node_modules
+frontend/dist
+.venv
+venv
+instance
+__pycache__
+**/__pycache__
+*.db
+.pytest_cache
+.git
+.DS_Store
