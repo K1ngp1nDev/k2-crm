@@ -349,6 +349,9 @@ h3 {
   gap: 20px;
   align-items: start;
 }
+.split > * {
+  min-width: 0;
+}
 .split__aside {
   position: sticky;
   top: 96px;
@@ -534,6 +537,7 @@ h3 {
 
 .table-wrap {
   overflow-x: auto;
+  max-width: 100%;
 }
 .table {
   width: 100%;
