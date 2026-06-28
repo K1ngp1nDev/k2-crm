@@ -18,6 +18,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app/ ./app/
 COPY run.py ./
+COPY seed.py ./
 # Serve the compiled frontend from Flask (single-container deployment).
 COPY --from=frontend /frontend/dist ./frontend/dist
 
