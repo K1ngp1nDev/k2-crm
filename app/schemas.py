@@ -88,3 +88,38 @@ class StatsOut(BaseModel):
     products: int
     orders: int
     revenue: Money
+
+
+# --- Analytics --------------------------------------------------------------
+class KpisOut(BaseModel):
+    clients: int
+    products: int
+    orders: int
+    revenue: Money
+    avg_order_value: Money
+
+
+class RevenuePointOut(BaseModel):
+    month: str  # "YYYY-MM"
+    revenue: Money
+    orders: int
+
+
+class StatusBreakdownOut(BaseModel):
+    status: str
+    count: int
+    revenue: Money
+
+
+class TopProductOut(BaseModel):
+    product_id: int
+    name: str
+    quantity: int
+    revenue: Money
+
+
+class AnalyticsOut(BaseModel):
+    kpis: KpisOut
+    revenue_by_month: list[RevenuePointOut]
+    orders_by_status: list[StatusBreakdownOut]
+    top_products: list[TopProductOut]

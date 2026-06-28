@@ -4,6 +4,7 @@ Routes stay thin; all domain rules live here so they are easy to test in
 isolation and reuse from anywhere (CLI, jobs, other endpoints).
 """
 
+from datetime import datetime, timezone
 from decimal import Decimal
 
 from sqlalchemy import func, select
@@ -134,4 +135,97 @@ def get_stats() -> dict:
             select(func.coalesce(func.sum(Order.total_amount), 0))
         )
         or Decimal("0.00"),
+    }
+
+
+def _recent_month_buckets(months: int) -> list[str]:
+    """Keys ('YYYY-MM') for the last `months` calendar months, oldest first."""
+    now = datetime.now(timezone.utc)
+    year, month = now.year, now.month
+    keys: list[str] = []
+    for offset in range(months - 1, -1, -1):
+        m = month - offset
+        y = year
+        while m <= 0:
+            m += 12
+            y -= 1
+        keys.append(f"{y:04d}-{m:02d}")
+    return keys
+
+
+def get_analytics(months: int = 6, top_n: int = 5) -> dict:
+    """Aggregate dashboard analytics.
+
+    Status and product roll-ups are computed in SQL; the month time-series is
+    assembled in Python so it behaves identically on SQLite and PostgreSQL
+    without any dialect-specific date functions.
+    """
+    clients = db.session.scalar(select(func.count(Client.id))) or 0
+    products = db.session.scalar(select(func.count(Product.id))) or 0
+    orders_count = db.session.scalar(select(func.count(Order.id))) or 0
+    revenue = db.session.scalar(
+        select(func.coalesce(func.sum(Order.total_amount), 0))
+    ) or Decimal("0.00")
+    avg_order_value = (
+        (Decimal(revenue) / orders_count).quantize(Decimal("0.01"))
+        if orders_count
+        else Decimal("0.00")
+    )
+
+    # Orders grouped by status (count + revenue), busiest first.
+    status_rows = db.session.execute(
+        select(
+            Order.status,
+            func.count(Order.id),
+            func.coalesce(func.sum(Order.total_amount), 0),
+        ).group_by(Order.status)
+    ).all()
+    orders_by_status = [
+        {"status": status, "count": int(count), "revenue": Decimal(total)}
+        for status, count, total in sorted(
+            status_rows, key=lambda r: r[1], reverse=True
+        )
+    ]
+
+    # Top products by revenue (sum of line totals) with units sold.
+    product_rows = db.session.execute(
+        select(
+            Product.id,
+            Product.name,
+            func.coalesce(func.sum(OrderItem.quantity), 0),
+            func.coalesce(func.sum(OrderItem.line_total), 0),
+        )
+        .join(OrderItem, OrderItem.product_id == Product.id)
+        .group_by(Product.id, Product.name)
+        .order_by(func.coalesce(func.sum(OrderItem.line_total), 0).desc())
+        .limit(top_n)
+    ).all()
+    top_products = [
+        {"product_id": pid, "name": name, "quantity": int(qty), "revenue": Decimal(rev)}
+        for pid, name, qty, rev in product_rows
+    ]
+
+    # Revenue time-series for the last `months` months, zero-filled.
+    keys = _recent_month_buckets(months)
+    index = {key: i for i, key in enumerate(keys)}
+    series = [{"month": key, "revenue": Decimal("0.00"), "orders": 0} for key in keys]
+    for created_at, total in db.session.execute(
+        select(Order.created_at, Order.total_amount)
+    ).all():
+        i = index.get(created_at.strftime("%Y-%m"))
+        if i is not None:
+            series[i]["revenue"] += Decimal(total)
+            series[i]["orders"] += 1
+
+    return {
+        "kpis": {
+            "clients": clients,
+            "products": products,
+            "orders": orders_count,
+            "revenue": Decimal(revenue),
+            "avg_order_value": avg_order_value,
+        },
+        "revenue_by_month": series,
+        "orders_by_status": orders_by_status,
+        "top_products": top_products,
     }

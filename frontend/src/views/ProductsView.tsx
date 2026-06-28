@@ -41,13 +41,13 @@ export function ProductsView() {
         sku: sku || null,
         price,
       })
-      toast.success(`Товар «${created.name}» створено`)
+      toast.success(`Product “${created.name}” created`)
       setName('')
       setSku('')
       setPrice('')
       load()
     } catch (err) {
-      toast.error(err instanceof ApiRequestError ? err.message : 'Не вдалося створити товар')
+      toast.error(err instanceof ApiRequestError ? err.message : 'Could not create the product')
     } finally {
       setSaving(false)
     }
@@ -56,28 +56,28 @@ export function ProductsView() {
   return (
     <div className="split">
       <div className="split__aside">
-        <Card title="Новий товар">
+        <Card title="New product">
           <form className="form" onSubmit={submit}>
-            <Field label="Назва" required htmlFor="p-name">
+            <Field label="Name" required htmlFor="p-name">
               <input
                 id="p-name"
                 className="input"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Ноутбук Lenovo"
+                placeholder="ProBook 14&quot; Laptop"
                 required
               />
             </Field>
-            <Field label="Артикул (SKU)" htmlFor="p-sku">
+            <Field label="SKU" htmlFor="p-sku">
               <input
                 id="p-sku"
                 className="input"
                 value={sku}
                 onChange={(e) => setSku(e.target.value)}
-                placeholder="LN-14-001"
+                placeholder="NB-PRO-14"
               />
             </Field>
-            <Field label="Ціна, ₴" required htmlFor="p-price" hint="Більше за нуль">
+            <Field label="Price, $" required htmlFor="p-price" hint="Greater than zero">
               <input
                 id="p-price"
                 className="input"
@@ -86,20 +86,20 @@ export function ProductsView() {
                 step="0.01"
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
-                placeholder="24999.00"
+                placeholder="1299.00"
                 required
               />
             </Field>
             <Button type="submit" loading={saving}>
               <Icon name="plus" size={16} />
-              Створити товар
+              Create product
             </Button>
           </form>
         </Card>
       </div>
 
       <div className="split__main">
-        <Card title="Товари" subtitle={`${products.length} позицій`}>
+        <Card title="Products" subtitle={`${products.length} items`}>
           {loading ? (
             <div className="center">
               <Spinner size={26} />
@@ -107,8 +107,8 @@ export function ProductsView() {
           ) : products.length === 0 ? (
             <EmptyState
               icon="products"
-              title="Ще немає товарів"
-              description="Додайте першу позицію номенклатури зліва."
+              title="No products yet"
+              description="Add your first catalog item on the left."
             />
           ) : (
             <div className="table-wrap">
@@ -116,10 +116,10 @@ export function ProductsView() {
                 <thead>
                   <tr>
                     <th>ID</th>
-                    <th>Назва</th>
-                    <th>Артикул</th>
-                    <th className="num">Ціна</th>
-                    <th>Створено</th>
+                    <th>Name</th>
+                    <th>SKU</th>
+                    <th className="num">Price</th>
+                    <th>Created</th>
                   </tr>
                 </thead>
                 <tbody>

@@ -70,3 +70,39 @@ export interface ApiErrorBody {
     details?: Array<{ field: string; message: string }>
   }
 }
+
+// --- Analytics ---
+
+export interface Kpis {
+  clients: number
+  products: number
+  orders: number
+  revenue: string
+  avg_order_value: string
+}
+
+export interface RevenuePoint {
+  month: string // "YYYY-MM"
+  revenue: string
+  orders: number
+}
+
+export interface StatusBreakdown {
+  status: string
+  count: number
+  revenue: string
+}
+
+export interface TopProduct {
+  product_id: number
+  name: string
+  quantity: number
+  revenue: string
+}
+
+export interface Analytics {
+  kpis: Kpis
+  revenue_by_month: RevenuePoint[]
+  orders_by_status: StatusBreakdown[]
+  top_products: TopProduct[]
+}

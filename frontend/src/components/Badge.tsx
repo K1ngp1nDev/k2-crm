@@ -1,17 +1,19 @@
-type Tone = 'neutral' | 'success' | 'accent' | 'info'
+type Tone = 'neutral' | 'success' | 'accent' | 'info' | 'danger'
 
-const STATUS_TONE: Record<string, Tone> = {
-  created: 'info',
-  paid: 'success',
+export const STATUS_TONE: Record<string, Tone> = {
+  created: 'neutral',
+  paid: 'info',
   shipped: 'accent',
-  cancelled: 'neutral',
+  completed: 'success',
+  cancelled: 'danger',
 }
 
-const STATUS_LABEL: Record<string, string> = {
-  created: 'Створено',
-  paid: 'Оплачено',
-  shipped: 'Відвантажено',
-  cancelled: 'Скасовано',
+export const STATUS_LABEL: Record<string, string> = {
+  created: 'Created',
+  paid: 'Paid',
+  shipped: 'Shipped',
+  completed: 'Completed',
+  cancelled: 'Cancelled',
 }
 
 export function Badge({ children, tone = 'neutral' }: { children: string; tone?: Tone }) {

@@ -40,13 +40,13 @@ export function ClientsView() {
         email: email || null,
         phone: phone || null,
       })
-      toast.success(`Клієнта «${created.name}» створено`)
+      toast.success(`Client “${created.name}” created`)
       setName('')
       setEmail('')
       setPhone('')
       load()
     } catch (err) {
-      toast.error(err instanceof ApiRequestError ? err.message : 'Не вдалося створити клієнта')
+      toast.error(err instanceof ApiRequestError ? err.message : 'Could not create the client')
     } finally {
       setSaving(false)
     }
@@ -55,15 +55,15 @@ export function ClientsView() {
   return (
     <div className="split">
       <div className="split__aside">
-        <Card title="Новий клієнт">
+        <Card title="New client">
           <form className="form" onSubmit={submit}>
-            <Field label="Назва / ім'я" required htmlFor="c-name">
+            <Field label="Company / name" required htmlFor="c-name">
               <input
                 id="c-name"
                 className="input"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="ТОВ «Альфа»"
+                placeholder="Northwind Trading Co."
                 required
               />
             </Field>
@@ -74,28 +74,28 @@ export function ClientsView() {
                 className="input"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="info@alfa.ua"
+                placeholder="ops@northwind.example"
               />
             </Field>
-            <Field label="Телефон" htmlFor="c-phone">
+            <Field label="Phone" htmlFor="c-phone">
               <input
                 id="c-phone"
                 className="input"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                placeholder="+380 44 123 45 67"
+                placeholder="+1 415 555 0142"
               />
             </Field>
             <Button type="submit" loading={saving}>
               <Icon name="plus" size={16} />
-              Створити клієнта
+              Create client
             </Button>
           </form>
         </Card>
       </div>
 
       <div className="split__main">
-        <Card title="Клієнти" subtitle={`${clients.length} записів`}>
+        <Card title="Clients" subtitle={`${clients.length} records`}>
           {loading ? (
             <div className="center">
               <Spinner size={26} />
@@ -103,8 +103,8 @@ export function ClientsView() {
           ) : clients.length === 0 ? (
             <EmptyState
               icon="clients"
-              title="Ще немає клієнтів"
-              description="Додайте першого клієнта у формі зліва."
+              title="No clients yet"
+              description="Add your first client in the form on the left."
             />
           ) : (
             <div className="table-wrap">
@@ -112,10 +112,10 @@ export function ClientsView() {
                 <thead>
                   <tr>
                     <th>ID</th>
-                    <th>Назва</th>
+                    <th>Name</th>
                     <th>Email</th>
-                    <th>Телефон</th>
-                    <th>Створено</th>
+                    <th>Phone</th>
+                    <th>Created</th>
                   </tr>
                 </thead>
                 <tbody>

@@ -16,6 +16,8 @@ export type IconName =
   | 'moon'
   | 'inbox'
   | 'chevron'
+  | 'search'
+  | 'trend'
 
 const ICONS: Record<IconName, ReactNode> = {
   dashboard: (
@@ -96,6 +98,18 @@ const ICONS: Record<IconName, ReactNode> = {
     </>
   ),
   chevron: <polyline points="6 9 12 15 18 9" />,
+  search: (
+    <>
+      <circle cx="11" cy="11" r="7" />
+      <line x1="21" y1="21" x2="16.65" y2="16.65" />
+    </>
+  ),
+  trend: (
+    <>
+      <polyline points="3 17 9 11 13 15 21 7" />
+      <polyline points="15 7 21 7 21 13" />
+    </>
+  ),
 }
 
 interface IconProps extends Omit<SVGProps<SVGSVGElement>, 'name'> {

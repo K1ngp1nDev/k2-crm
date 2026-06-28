@@ -959,3 +959,231 @@ h3 {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ============================================================
+   Charts & analytics components
+   ============================================================ */
+:root {
+  --c-info: #2f6bff;
+  --c-accent: #f59e0b;
+  --c-success: #16a34a;
+  --c-danger: #e1453a;
+  --c-neutral: #94a3b8;
+  --c-grid: var(--border);
+  --c-line: #2f6bff;
+}
+:root[data-theme='dark'] {
+  --c-info: #5b8cff;
+  --c-accent: #fbbf24;
+  --c-success: #34d27f;
+  --c-danger: #f87171;
+  --c-neutral: #64748b;
+  --c-line: #5b8cff;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --c-info: #5b8cff;
+    --c-accent: #fbbf24;
+    --c-success: #34d27f;
+    --c-danger: #f87171;
+    --c-neutral: #64748b;
+    --c-line: #5b8cff;
+  }
+}
+
+.badge--danger {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+/* KPI delta chip */
+.stat__value-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.stat__delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-variant-numeric: tabular-nums;
+}
+.stat__delta--up {
+  background: var(--success-soft);
+  color: var(--success);
+}
+.stat__delta--down {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+.stat__delta--down svg {
+  transform: scaleY(-1);
+}
+
+/* Dashboard two-column row */
+.dash-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+/* Area chart */
+.chart-area {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.chart-axis {
+  fill: var(--text-subtle);
+  font-size: 11px;
+  font-family: var(--font);
+}
+
+/* Donut chart */
+.donut {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+.donut__chart {
+  width: 160px;
+  flex-shrink: 0;
+}
+.donut__chart svg {
+  width: 100%;
+  height: auto;
+}
+.donut__value {
+  fill: var(--text);
+  font-size: 30px;
+  font-weight: 800;
+  font-family: var(--font);
+  font-variant-numeric: tabular-nums;
+}
+.donut__label {
+  fill: var(--text-muted);
+  font-size: 12px;
+  font-family: var(--font);
+}
+.donut__legend {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+  min-width: 180px;
+}
+.donut__legend-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+.donut__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+.donut__legend-label {
+  flex: 1;
+}
+.donut__legend-value {
+  font-weight: 600;
+}
+
+/* Ranked bar list (top products) */
+.barlist {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.barlist__head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+.barlist__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+.barlist__value {
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.barlist__track {
+  height: 8px;
+  background: var(--surface-2);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.barlist__fill {
+  height: 100%;
+  border-radius: 999px;
+  min-width: 4px;
+  transition: width 0.4s ease;
+}
+.barlist__sub {
+  display: block;
+  margin-top: 4px;
+}
+
+/* Toolbar: search + filter */
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.search {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text-subtle);
+}
+.search:focus-within {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--ring);
+  color: var(--primary);
+}
+.search__input {
+  border: none;
+  background: transparent;
+  padding: 8px 0;
+  width: 200px;
+  max-width: 48vw;
+  color: var(--text);
+  outline: none;
+}
+.search__input::placeholder {
+  color: var(--text-subtle);
+}
+
+/* Orders list: client + date cell */
+.order__client {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 860px) {
+  .dash-row {
+    grid-template-columns: 1fr;
+  }
+}

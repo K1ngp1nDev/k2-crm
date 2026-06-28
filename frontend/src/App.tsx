@@ -15,19 +15,19 @@ interface NavItem {
 }
 
 const NAV: NavItem[] = [
-  { id: 'dashboard', label: 'Огляд', icon: 'dashboard' },
-  { id: 'clients', label: 'Клієнти', icon: 'clients' },
-  { id: 'products', label: 'Товари', icon: 'products' },
-  { id: 'orders', label: 'Замовлення', icon: 'orders' },
+  { id: 'dashboard', label: 'Overview', icon: 'dashboard' },
+  { id: 'clients', label: 'Clients', icon: 'clients' },
+  { id: 'products', label: 'Products', icon: 'products' },
+  { id: 'orders', label: 'Orders', icon: 'orders' },
 ]
 
 const TITLES: Record<View, { title: string; subtitle: string }> = {
-  dashboard: { title: 'Огляд', subtitle: 'Ключові показники модуля обліку замовлень' },
-  clients: { title: 'Клієнти', subtitle: 'Довідник клієнтів компанії' },
-  products: { title: 'Товари', subtitle: 'Номенклатура товарів та послуг' },
+  dashboard: { title: 'Overview', subtitle: 'Key metrics for the order accounting module' },
+  clients: { title: 'Clients', subtitle: 'Company client directory' },
+  products: { title: 'Products', subtitle: 'Product and service catalog' },
   orders: {
-    title: 'Замовлення',
-    subtitle: 'Створення замовлень і перегляд історії по клієнту',
+    title: 'Orders',
+    subtitle: 'Build orders and browse the full order history',
   },
 }
 
@@ -76,7 +76,7 @@ export default function App() {
           <span className="brand__mark">K2</span>
           <span className="brand__text">
             <strong>K2&nbsp;ERP</strong>
-            <span>Облік замовлень</span>
+            <span>Order accounting</span>
           </span>
         </div>
 
@@ -98,7 +98,7 @@ export default function App() {
         <div className="sidebar__footer">
           <button type="button" className="theme-toggle" onClick={toggle}>
             <Icon name={isDark ? 'sun' : 'moon'} />
-            <span>{isDark ? 'Світла тема' : 'Темна тема'}</span>
+            <span>{isDark ? 'Light theme' : 'Dark theme'}</span>
           </button>
         </div>
       </aside>

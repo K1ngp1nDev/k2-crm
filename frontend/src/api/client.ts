@@ -1,4 +1,5 @@
 import type {
+  Analytics,
   ApiErrorBody,
   Client,
   ClientCreate,
@@ -44,6 +45,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 export const api = {
   health: () => request<{ status: string }>('/health'),
   stats: () => request<Stats>('/stats'),
+  analytics: () => request<Analytics>('/analytics'),
 
   listClients: () => request<Client[]>('/clients'),
   createClient: (body: ClientCreate) =>

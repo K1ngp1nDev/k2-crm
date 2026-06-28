@@ -8,10 +8,12 @@ import { Button } from '../components/Button'
 import { EmptyState } from '../components/EmptyState'
 import { Spinner } from '../components/Spinner'
 import { Icon } from '../components/Icon'
-import { StatusBadge } from '../components/Badge'
+import { StatusBadge, STATUS_LABEL } from '../components/Badge'
 import { useToast } from '../components/Toast'
 import { formatMoney } from '../utils/money'
 import { formatDate } from '../utils/format'
+
+const STATUS_OPTIONS = ['created', 'paid', 'shipped', 'completed', 'cancelled']
 
 interface Line {
   key: number
@@ -44,7 +46,7 @@ function QtyStepper({
         type="button"
         className="qty__btn"
         onClick={() => onChange(Math.max(1, value - 1))}
-        aria-label="Зменшити"
+        aria-label="Decrease"
       >
         <Icon name="minus" size={14} />
       </button>
@@ -61,7 +63,7 @@ function QtyStepper({
         type="button"
         className="qty__btn"
         onClick={() => onChange(value + 1)}
-        aria-label="Збільшити"
+        aria-label="Increase"
       >
         <Icon name="plus" size={14} />
       </button>
@@ -73,24 +75,30 @@ export function OrdersView() {
   const toast = useToast()
   const [clients, setClients] = useState<Client[]>([])
   const [products, setProducts] = useState<Product[]>([])
+  const [orders, setOrders] = useState<Order[]>([])
   const [ready, setReady] = useState(false)
 
   const [clientId, setClientId] = useState<number | ''>('')
   const [lines, setLines] = useState<Line[]>([])
   const [saving, setSaving] = useState(false)
   const lineKey = useRef(0)
-  const reqId = useRef(0)
 
-  const [filterId, setFilterId] = useState<number | ''>('')
-  const [orders, setOrders] = useState<Order[]>([])
-  const [ordersLoading, setOrdersLoading] = useState(false)
+  const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState('')
   const [expanded, setExpanded] = useState<number | null>(null)
 
+  const reloadOrders = () =>
+    api
+      .listOrders()
+      .then(setOrders)
+      .catch((e) => toast.error(e.message))
+
   useEffect(() => {
-    Promise.all([api.listClients(), api.listProducts()])
-      .then(([c, p]) => {
+    Promise.all([api.listClients(), api.listProducts(), api.listOrders()])
+      .then(([c, p, o]) => {
         setClients(c)
         setProducts(p)
+        setOrders(o)
       })
       .catch((e) => toast.error(e.message))
       .finally(() => setReady(true))
@@ -100,6 +108,10 @@ export function OrdersView() {
     () => new Map(products.map((p) => [p.id, p])),
     [products],
   )
+  const clientName = useMemo(() => {
+    const map = new Map(clients.map((c) => [c.id, c.name]))
+    return (id: number) => map.get(id) ?? `#${id}`
+  }, [clients])
 
   const previewTotal = useMemo(
     () =>
@@ -109,6 +121,18 @@ export function OrdersView() {
       ),
     [lines, productById],
   )
+
+  const filteredOrders = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    return orders.filter((o) => {
+      if (statusFilter && o.status !== statusFilter) return false
+      if (!q) return true
+      return (
+        clientName(o.client_id).toLowerCase().includes(q) ||
+        String(o.id).includes(q.replace('#', ''))
+      )
+    })
+  }, [orders, statusFilter, search, clientName])
 
   const addLine = () => {
     if (products.length === 0) return
@@ -121,39 +145,14 @@ export function OrdersView() {
 
   const removeLine = (key: number) => setLines((ls) => ls.filter((l) => l.key !== key))
 
-  const loadOrders = (cid: number) => {
-    // Guard against out-of-order responses when the filter changes quickly.
-    const token = ++reqId.current
-    setOrdersLoading(true)
-    api
-      .listClientOrders(cid)
-      .then((data) => {
-        if (token === reqId.current) setOrders(data)
-      })
-      .catch((e) => {
-        if (token === reqId.current) toast.error(e.message)
-      })
-      .finally(() => {
-        if (token === reqId.current) setOrdersLoading(false)
-      })
-  }
-
-  const onFilterChange = (value: string) => {
-    const cid = value === '' ? '' : Number(value)
-    setFilterId(cid)
-    setExpanded(null)
-    if (cid === '') setOrders([])
-    else loadOrders(cid)
-  }
-
   const submit = async (e: FormEvent) => {
     e.preventDefault()
     if (clientId === '') {
-      toast.error('Оберіть клієнта')
+      toast.error('Select a client')
       return
     }
     if (lines.length === 0) {
-      toast.error('Додайте хоча б один товар')
+      toast.error('Add at least one item')
       return
     }
     setSaving(true)
@@ -162,15 +161,12 @@ export function OrdersView() {
         client_id: clientId,
         items: lines.map((l) => ({ product_id: l.product_id, quantity: l.quantity })),
       })
-      toast.success(`Замовлення #${order.id} створено — ${formatMoney(order.total_amount)}`)
+      toast.success(`Order #${order.id} created — ${formatMoney(order.total_amount)}`)
       setLines([])
-      setExpanded(null)
-      setFilterId(clientId)
-      loadOrders(clientId)
+      setExpanded(order.id)
+      await reloadOrders()
     } catch (err) {
-      toast.error(
-        err instanceof ApiRequestError ? err.message : 'Не вдалося створити замовлення',
-      )
+      toast.error(err instanceof ApiRequestError ? err.message : 'Could not create the order')
     } finally {
       setSaving(false)
     }
@@ -192,15 +188,15 @@ export function OrdersView() {
         <div className="banner">
           <Icon name="info" size={18} />
           <span>
-            Щоб створити замовлення, спершу додайте хоча б одного{' '}
-            <strong>клієнта</strong> та один <strong>товар</strong> у відповідних розділах.
+            To create an order, first add at least one <strong>client</strong> and one{' '}
+            <strong>product</strong> in their sections.
           </span>
         </div>
       )}
 
       <form className="order-builder" onSubmit={submit}>
-        <Card title="Нове замовлення" className="order-builder__form">
-          <Field label="Клієнт" required htmlFor="o-client">
+        <Card title="New order" className="order-builder__form">
+          <Field label="Client" required htmlFor="o-client">
             <select
               id="o-client"
               className="select"
@@ -208,7 +204,7 @@ export function OrdersView() {
               onChange={(e) => setClientId(e.target.value === '' ? '' : Number(e.target.value))}
               required
             >
-              <option value="">— Оберіть клієнта —</option>
+              <option value="">— Select a client —</option>
               {clients.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
@@ -219,15 +215,15 @@ export function OrdersView() {
 
           <div className="lines">
             <div className="lines__head">
-              <span>Позиції замовлення</span>
+              <span>Order items</span>
               <Button type="button" variant="ghost" size="sm" onClick={addLine} disabled={products.length === 0}>
                 <Icon name="plus" size={16} />
-                Додати позицію
+                Add item
               </Button>
             </div>
 
             {lines.length === 0 ? (
-              <p className="lines__empty muted small">Додайте хоча б одну позицію.</p>
+              <p className="lines__empty muted small">Add at least one item.</p>
             ) : (
               lines.map((line, idx) => {
                 const product = productById.get(line.product_id)
@@ -237,7 +233,7 @@ export function OrdersView() {
                     <select
                       className="select line__product"
                       value={line.product_id}
-                      aria-label={`Товар, позиція ${idx + 1}`}
+                      aria-label={`Product, row ${idx + 1}`}
                       onChange={(e) => updateLine(line.key, { product_id: Number(e.target.value) })}
                     >
                       {products.map((p) => (
@@ -249,7 +245,7 @@ export function OrdersView() {
 
                     <QtyStepper
                       value={line.quantity}
-                      label={`Кількість, позиція ${idx + 1}`}
+                      label={`Quantity, row ${idx + 1}`}
                       onChange={(q) => updateLine(line.key, { quantity: q })}
                     />
 
@@ -259,7 +255,7 @@ export function OrdersView() {
                       type="button"
                       className="line__remove"
                       onClick={() => removeLine(line.key)}
-                      aria-label="Видалити позицію"
+                      aria-label="Remove item"
                     >
                       <Icon name="trash" size={16} />
                     </button>
@@ -271,10 +267,10 @@ export function OrdersView() {
         </Card>
 
         <aside className="summary">
-          <h3 className="summary__title">Підсумок</h3>
+          <h3 className="summary__title">Summary</h3>
           <div className="summary__lines">
             {lines.length === 0 ? (
-              <p className="muted small">Підсумок з’явиться після додавання товарів.</p>
+              <p className="muted small">The summary appears once you add items.</p>
             ) : (
               lines.map((line) => {
                 const product = productById.get(line.product_id)
@@ -293,12 +289,12 @@ export function OrdersView() {
           </div>
 
           <div className="summary__total">
-            <span>Разом</span>
+            <span>Total</span>
             <span className="summary__amount">{formatMoney(previewTotal)}</span>
           </div>
 
           <p className="summary__note">
-            Остаточну суму рахує сервер при створенні — це попередній перегляд.
+            The server computes the final amount on creation — this is a preview.
           </p>
 
           <Button
@@ -306,54 +302,61 @@ export function OrdersView() {
             loading={saving}
             disabled={clientId === '' || lines.length === 0}
           >
-            Створити замовлення
+            Create order
           </Button>
 
           {(clientId === '' || lines.length === 0) && (
-            <p className="summary__note">
-              Оберіть клієнта та додайте хоча б одну позицію.
-            </p>
+            <p className="summary__note">Select a client and add at least one item.</p>
           )}
         </aside>
       </form>
 
       <Card
-        title="Замовлення клієнта"
+        title="All orders"
+        subtitle={`${filteredOrders.length} of ${orders.length}`}
         action={
-          <select
-            className="select select--inline"
-            value={filterId}
-            onChange={(e) => onFilterChange(e.target.value)}
-            aria-label="Фільтр за клієнтом"
-          >
-            <option value="">— Оберіть клієнта —</option>
-            {clients.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
+          <div className="toolbar">
+            <div className="search">
+              <Icon name="search" size={16} />
+              <input
+                className="search__input"
+                placeholder="Search by client or #id"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                aria-label="Search orders"
+              />
+            </div>
+            <select
+              className="select select--inline"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              aria-label="Filter by status"
+            >
+              <option value="">All statuses</option>
+              {STATUS_OPTIONS.map((s) => (
+                <option key={s} value={s}>
+                  {STATUS_LABEL[s] ?? s}
+                </option>
+              ))}
+            </select>
+          </div>
         }
       >
-        {filterId === '' ? (
-          <EmptyState
-            icon="clients"
-            title="Оберіть клієнта"
-            description="Виберіть клієнта вгорі, щоб переглянути його замовлення."
-          />
-        ) : ordersLoading ? (
-          <div className="center">
-            <Spinner size={26} />
-          </div>
-        ) : orders.length === 0 ? (
+        {orders.length === 0 ? (
           <EmptyState
             icon="orders"
-            title="У цього клієнта ще немає замовлень"
-            description="Створіть перше замовлення у формі вище."
+            title="No orders yet"
+            description="Create your first order in the form above."
+          />
+        ) : filteredOrders.length === 0 ? (
+          <EmptyState
+            icon="search"
+            title="No matching orders"
+            description="Try a different search term or status filter."
           />
         ) : (
           <div className="orders">
-            {orders.map((o) => (
+            {filteredOrders.map((o) => (
               <div className="order" key={o.id}>
                 <button
                   type="button"
@@ -362,9 +365,12 @@ export function OrdersView() {
                   aria-expanded={expanded === o.id}
                 >
                   <span className="order__id mono">#{o.id}</span>
-                  <span className="order__date muted">{formatDate(o.created_at)}</span>
+                  <span className="order__client">
+                    <span className="strong">{clientName(o.client_id)}</span>
+                    <span className="muted small"> · {formatDate(o.created_at)}</span>
+                  </span>
                   <StatusBadge status={o.status} />
-                  <span className="order__count muted small">{o.items.length} поз.</span>
+                  <span className="order__count muted small">{o.items.length} items</span>
                   <span className="order__total strong">{formatMoney(o.total_amount)}</span>
                   <Icon name="chevron" size={16} className={expanded === o.id ? 'rot' : ''} />
                 </button>
@@ -374,10 +380,10 @@ export function OrdersView() {
                     <table className="table table--inner">
                       <thead>
                         <tr>
-                          <th>Товар</th>
-                          <th className="num">Ціна</th>
-                          <th className="num">К-сть</th>
-                          <th className="num">Сума</th>
+                          <th>Product</th>
+                          <th className="num">Price</th>
+                          <th className="num">Qty</th>
+                          <th className="num">Amount</th>
                         </tr>
                       </thead>
                       <tbody>

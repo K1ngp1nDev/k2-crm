@@ -81,3 +81,8 @@ def get_order(order_id: int):
 @api_bp.get("/stats")
 def stats():
     return jsonify(_dump(schemas.StatsOut.model_validate(services.get_stats())))
+
+
+@api_bp.get("/analytics")
+def analytics():
+    return jsonify(_dump(schemas.AnalyticsOut.model_validate(services.get_analytics())))

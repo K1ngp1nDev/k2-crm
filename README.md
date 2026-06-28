@@ -1,214 +1,198 @@
-# K2 ERP — Модуль обліку замовлень
+# K2 ERP — Order Accounting Module
 
-Невеликий, але «по-дорослому» зроблений модуль обліку замовлень: **Python / Flask
-REST API** + **React + TypeScript SPA** з акуратним UI/UX.
+A compact but production-shaped **order management** module: a **Python / Flask
+REST API** backed by **SQLite / PostgreSQL**, with a **React + TypeScript**
+single-page app that turns operational data into a clean analytics dashboard.
 
-Сутності: **Клієнт → Замовлення → Позиція замовлення → Товар**. Сума замовлення
-рахується **на сервері**, ціна товару **фіксується** в позиції на момент
-замовлення (snapshot) — як у справжніх облікових системах.
+Order totals are computed **server-side**, and each line item **snapshots** the
+product price at order time — the way real accounting systems work.
+
+![Dashboard](docs/screenshots/dashboard-light.png)
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/orders-light.png" alt="Order builder and filterable order list" /></td>
+    <td width="50%"><img src="docs/screenshots/dashboard-dark.png" alt="Dashboard in dark theme" /></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/products-light.png" alt="Product catalog" /></td>
+    <td width="50%"><img src="docs/screenshots/clients-light.png" alt="Client directory" /></td>
+  </tr>
+</table>
+
+<p align="center"><img src="docs/screenshots/mobile-dashboard.png" alt="Responsive mobile dashboard" width="300" /></p>
 
 ---
 
-## Зміст
-- [Можливості](#можливості)
-- [Стек](#стек)
-- [Архітектура](#архітектура)
-- [Структура проєкту](#структура-проєкту)
-- [Швидкий старт](#швидкий-старт)
-- [База даних](#база-даних-sqlite--postgresql)
-- [API](#api)
-- [Бізнес-правила](#бізнес-правила)
-- [Тести](#тести)
-- [Чому саме такий підхід](#чому-саме-такий-підхід)
+## Highlights
 
----
+- **Analytics dashboard** — KPI cards (revenue, orders, average order value,
+  active clients with month-over-month delta), a 6-month revenue trend, an
+  orders-by-status donut, and a top-products-by-revenue ranking.
+- **Order builder** — pick a client, add line items with a live, server-verified
+  total preview, then create the order in one atomic transaction.
+- **Filterable order history** — full order list with text search (client / id)
+  and status filtering, plus expandable per-order line items.
+- **Clean, layered backend** — thin controllers, all domain rules in a service
+  layer, Pydantic validation at the edge, a unified JSON error format.
+- **Dependency-free charts** — every chart is hand-built inline SVG/CSS, so the
+  frontend ships no charting library.
+- **Design system** — reusable components, design tokens, light/dark themes,
+  empty/loading/error states, accessibility, and responsive layout.
+- **Tested** — 21 backend tests (business rules + analytics aggregation) and
+  8 frontend tests (API client, formatting, components).
 
-## Можливості
-- Створення клієнтів, товарів, замовлень.
-- Список замовлень по клієнту.
-- Автоматичний розрахунок суми замовлення на сервері.
-- Дашборд із показниками (клієнти, товари, замовлення, виторг).
-- Конструктор замовлення з live-підрахунком суми та sticky-підсумком.
-- Світла / темна тема, toast-сповіщення, empty-states, адаптивність.
+## Tech stack
 
-## Стек
-| Шар | Технології |
+| Layer | Technologies |
 |---|---|
 | Backend | Python 3.12, Flask, Flask-SQLAlchemy (SQLAlchemy 2.0), Pydantic v2 |
-| БД | SQLite (за замовчуванням) / PostgreSQL (через `DATABASE_URL`) |
+| Database | SQLite (default) / PostgreSQL (via `DATABASE_URL`) |
 | Frontend | React 18, TypeScript, Vite |
-| Тести | pytest (backend), Vitest + Testing Library (frontend) |
+| Tests | pytest (backend), Vitest + Testing Library (frontend) |
 | DevOps | Docker (multi-stage), docker-compose, gunicorn |
 
-## Архітектура
+## Architecture
 
 ```
 React + TS (Vite SPA)
-        │  fetch /api/*  (типізований клієнт)
+        │  fetch /api/*  (typed client)
         ▼
-Flask (app-factory)
-  routes  ──►  schemas (Pydantic: валідація + серіалізація)
+Flask (app factory)
+  routes  ──►  schemas (Pydantic: validation + serialization)
      │
      ▼
-  services (бізнес-правила + транзакції)
+  services (business rules + transactions)
      │
      ▼
   models (SQLAlchemy 2.0)  ──►  SQLite | PostgreSQL
 ```
 
-Шари розділені навмисно: контролери тонкі, уся доменна логіка — в `services`,
-що робить її легко тестованою й придатною для повторного використання.
+Layers are separated on purpose: controllers stay thin and all domain logic
+lives in `services`, which keeps it easy to test and reuse.
 
-## Структура проєкту
+## Project structure
 
 ```
 k2-erp-orders/
 ├── app/                  # Backend
-│   ├── __init__.py       # create_app(): фабрика, БД, error handlers, віддача SPA
-│   ├── config.py         # конфіг з env (DATABASE_URL)
-│   ├── extensions.py     # db = SQLAlchemy()
+│   ├── __init__.py       # create_app(): factory, DB, error handlers, SPA serving
+│   ├── config.py         # env-driven config (DATABASE_URL)
 │   ├── models.py         # Client, Product, Order, OrderItem
-│   ├── schemas.py        # Pydantic: *Create / *Out
-│   ├── services.py       # бізнес-логіка + транзакції
-│   ├── errors.py         # доменні помилки + єдиний формат JSON-помилки
+│   ├── schemas.py        # Pydantic: *Create / *Out + analytics schemas
+│   ├── services.py       # business logic, transactions, analytics aggregation
+│   ├── errors.py         # domain errors + unified JSON error format
 │   └── routes.py         # /api endpoints
-├── tests/                # pytest (бізнес-правила)
+├── tests/                # pytest (business rules + analytics)
 ├── frontend/             # React + TypeScript (Vite)
 │   └── src/
-│       ├── api/          # типізований клієнт + типи
-│       ├── components/   # дизайн-система (Button, Card, Field, Toast, ...)
+│       ├── api/          # typed client + types
+│       ├── components/   # design system + charts/ (SVG charts)
 │       ├── views/        # Dashboard / Clients / Products / Orders
-│       └── styles.css    # дизайн-токени + теми
-├── run.py                # точка входу (run:app для gunicorn)
-├── requirements.txt
+│       └── styles.css    # design tokens + themes
+├── seed.py               # deterministic demo data for screenshots / local use
 ├── Dockerfile            # multi-stage: build SPA → backend + bundled SPA
-└── docker-compose.yml    # app (+ опційний postgres профіль)
+└── docker-compose.yml    # app (+ optional postgres profile)
 ```
 
-## Швидкий старт
+## Quick start
 
-### Варіант A — Docker (один контейнер: API + SPA)
+### Option A — Docker (one container: API + SPA)
 
 ```bash
 docker compose up --build
-# відкрити http://localhost:5000
+# open http://localhost:5000
 ```
 
-### Варіант B — локально
+### Option B — local
 
 **Backend:**
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-python run.py          # http://localhost:5000  (API; SPA — якщо є frontend/dist)
+python seed.py        # optional: load demo data (clients, products, 96 orders)
+python run.py         # http://localhost:5000
 ```
 
-**Frontend (dev, з hot-reload і проксі на API):**
+**Frontend (dev server with hot-reload, proxies /api → :5000):**
 ```bash
 cd frontend
 npm install
-npm run dev            # http://localhost:5173  (проксує /api → :5000)
+npm run dev           # http://localhost:5173
 ```
 
-Для продакшн-білду фронта: `cd frontend && npm run build` — і Flask віддаватиме
-SPA із `frontend/dist` на `http://localhost:5000`.
+For a production build the Flask app serves the SPA from `frontend/dist`:
+`cd frontend && npm run build`, then open `http://localhost:5000`.
 
-## База даних (SQLite / PostgreSQL)
+## Database (SQLite / PostgreSQL)
 
-Підключення керується змінною `DATABASE_URL` — код не змінюється:
+The connection is controlled by `DATABASE_URL` — the code is identical for both:
 
 ```bash
-# SQLite (за замовчуванням)
+# SQLite (default)
 export DATABASE_URL="sqlite:///k2_erp.db"
 
 # PostgreSQL
 export DATABASE_URL="postgresql+psycopg://k2:k2@localhost:5432/k2_erp"
 ```
 
-Підняти Postgres через compose: `docker compose --profile postgres up`.
-Схема створюється автоматично при старті (`db.create_all()`).
+Bring up Postgres via compose: `docker compose --profile postgres up`.
+The schema is created automatically on start (`db.create_all()`).
 
 ## API
 
-Базовий префікс — `/api`. Формат помилки уніфікований:
+Base prefix `/api`. Errors use a single shape:
 `{"error": {"code": "...", "message": "...", "details": [...]}}`.
 
-| Метод | Шлях | Опис |
+| Method | Path | Description |
 |---|---|---|
-| GET | `/api/health` | healthcheck |
-| GET | `/api/stats` | агреговані показники |
-| POST | `/api/clients` | створити клієнта |
-| GET | `/api/clients` | список клієнтів |
-| POST | `/api/products` | створити товар |
-| GET | `/api/products` | список товарів |
-| POST | `/api/orders` | створити замовлення (валідація + розрахунок) |
-| GET | `/api/orders` | усі замовлення (опц. `?client_id=`) |
-| GET | `/api/orders/<id>` | одне замовлення |
-| GET | `/api/clients/<id>/orders` | замовлення клієнта |
-
-### Приклади
+| GET | `/api/health` | Health check |
+| GET | `/api/stats` | Headline counts (clients, products, orders, revenue) |
+| GET | `/api/analytics` | KPIs, revenue-by-month, orders-by-status, top products |
+| GET / POST | `/api/clients` | List / create clients |
+| GET / POST | `/api/products` | List / create products |
+| GET / POST | `/api/orders` | List (opt. `?client_id=`) / create orders |
+| GET | `/api/orders/<id>` | Single order |
+| GET | `/api/clients/<id>/orders` | Orders for a client |
 
 ```bash
-# Клієнт
-curl -X POST localhost:5000/api/clients \
-  -H 'Content-Type: application/json' \
-  -d '{"name":"ТОВ Альфа","email":"a@alfa.ua"}'
-
-# Товари
-curl -X POST localhost:5000/api/products \
-  -H 'Content-Type: application/json' \
-  -d '{"name":"Ноутбук","price":"24999.00","sku":"NB-1"}'
-
-# Замовлення (сума порахується сервером)
+# Create an order — the server computes the total
 curl -X POST localhost:5000/api/orders \
   -H 'Content-Type: application/json' \
   -d '{"client_id":1,"items":[{"product_id":1,"quantity":2}]}'
-# → {"id":1,"total_amount":"49998.00","items":[...],"status":"created", ...}
-
-# Замовлення клієнта
-curl localhost:5000/api/clients/1/orders
+# → {"id":1,"total_amount":"2598.00","status":"created", ...}
 ```
 
-> Гроші завжди серіалізуються рядком (`"49998.00"`), щоб не втрачати точність.
+> Money is always serialized as a string (`"2598.00"`) to preserve precision.
 
-## Бізнес-правила
+## Business rules
 
-| Правило | Де гарантується |
+| Rule | Enforced by |
 |---|---|
-| Замовлення не може існувати без клієнта | NOT NULL FK + перевірка в `services` (404) |
-| У замовленні має бути ≥ 1 позиція | Pydantic `min_length=1` + перевірка в `services` |
-| Сума рахується автоматично сервером | `services.create_order` (клієнтську суму ігноруємо) |
-| Товар у позиції має існувати | `services` (404, відкат транзакції) |
-| Ціна в замовленні не змінюється згодом | snapshot `unit_price` у `OrderItem` |
+| An order cannot exist without a client | NOT NULL FK + service check (404) |
+| An order needs ≥ 1 item | Pydantic `min_length=1` + service check |
+| The total is computed server-side | `services.create_order` (client total ignored) |
+| Every referenced product must exist | `services` (404, transaction rollback) |
+| Order prices never change afterwards | `unit_price` snapshot on `OrderItem` |
 
-Створення замовлення — **атомарне**: будь-яка помилка відкочує транзакцію.
+Order creation is **atomic** — any error rolls the whole transaction back.
 
-## Тести
+## Tests
 
 ```bash
-# Backend
-.venv/bin/pytest -q                 # 19 тестів: бізнес-правила, snapshot ціни, конфлікти, ліміти
+# Backend — 21 tests
+.venv/bin/pytest -q
 
-# Frontend
-cd frontend && npm test             # 8 тестів: API-клієнт, форматування, компоненти
+# Frontend — 8 tests
+cd frontend && npm test
 ```
 
-## Чому саме такий підхід
+## What this project demonstrates
 
-- **Шарова архітектура** (`routes → schemas → services → models`). Контролери
-  тонкі; домен ізольований і тестований. Це масштабується під реальний ERP.
-- **Окрема таблиця `OrderItem`.** В умові 3 сутності, але без таблиці-зв'язку з
-  кількістю не можна коректно зберігати склад замовлення. Це 4-та сутність, без
-  якої «облік» не є обліком.
-- **Snapshot ціни (`unit_price`).** Зміна ціни товару не повинна переписувати
-  історію вже створених замовлень — базова вимога будь-якої облікової системи.
-- **`Decimal`/`Numeric(12,2)` для грошей**, ніколи `float`. У JSON — рядок.
-- **Сума рахується лише на сервері.** Клієнт не може нав'язати свою суму;
-  фронтовий live-підрахунок — суто UX-прев'ю.
-- **`DATABASE_URL`** — SQLite для швидкого старту, PostgreSQL для продакшену без
-  зміни коду.
-- **Pydantic** — валідація на межі застосунку як перша лінія захисту правил.
-- **Стійкість до помилок**: єдиний JSON-формат для 404/409/422/500, відкат
-  транзакції в обробниках, увімкнені foreign keys у SQLite, гард точності сум.
-- **React + TypeScript**: типізований API-клієнт (типи дзеркалять схеми бекенду),
-  цілісна дизайн-система (токени, світла/темна теми, адаптивність, a11y).
+- Building **custom dashboards and admin panels** end to end: data model →
+  API → typed client → analytics UI.
+- **API-backed data flows** with server-side aggregation (KPIs, time series,
+  status and product roll-ups) that work on both SQLite and PostgreSQL.
+- **Tables, filters, charts, KPIs and reports** assembled into a coherent,
+  themeable internal tool — without leaning on a UI/charting framework.
+- A **clean, layered, tested** full-stack codebase with Docker packaging.
