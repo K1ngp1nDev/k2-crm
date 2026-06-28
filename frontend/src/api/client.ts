@@ -1,4 +1,5 @@
 import type {
+  ActivityEvent,
   Analytics,
   ApiErrorBody,
   Client,
@@ -7,6 +8,7 @@ import type {
   OrderCreate,
   Product,
   ProductCreate,
+  Reports,
   Stats,
 } from './types'
 
@@ -61,4 +63,10 @@ export const api = {
   getOrder: (id: number) => request<Order>(`/orders/${id}`),
   listClientOrders: (clientId: number) =>
     request<Order[]>(`/clients/${clientId}/orders`),
+
+  reports: () => request<Reports>('/reports'),
+  activity: () => request<ActivityEvent[]>('/activity'),
+  adjustStock: (id: number, stock: number) =>
+    request<Product>(`/products/${id}/stock`, { method: 'PATCH', body: JSON.stringify({ stock }) }),
+  resetDemo: () => request<{ status: string }>('/reset', { method: 'POST' }),
 }

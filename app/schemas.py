@@ -23,6 +23,7 @@ class ClientCreate(BaseModel):
     name: str = Field(min_length=1, max_length=255)
     email: EmailStr | None = None
     phone: str | None = Field(default=None, max_length=64)
+    note: str | None = Field(default=None, max_length=500)
 
 
 class ClientOut(BaseModel):
@@ -32,13 +33,17 @@ class ClientOut(BaseModel):
     name: str
     email: str | None
     phone: str | None
+    note: str | None
     created_at: UtcDateTime
 
 
 class ProductCreate(BaseModel):
     name: str = Field(min_length=1, max_length=255)
     sku: str | None = Field(default=None, max_length=64)
+    category: str = Field(default="General", max_length=64)
     price: Decimal = Field(gt=0, max_digits=12, decimal_places=2)
+    stock: int = Field(default=0, ge=0)
+    reorder_threshold: int = Field(default=10, ge=0)
 
 
 class ProductOut(BaseModel):
@@ -47,8 +52,16 @@ class ProductOut(BaseModel):
     id: int
     name: str
     sku: str | None
+    category: str
     price: Money
+    stock: int
+    reorder_threshold: int
+    stock_status: str
     created_at: UtcDateTime
+
+
+class StockAdjust(BaseModel):
+    stock: int = Field(ge=0)
 
 
 class OrderItemCreate(BaseModel):
@@ -123,3 +136,43 @@ class AnalyticsOut(BaseModel):
     revenue_by_month: list[RevenuePointOut]
     orders_by_status: list[StatusBreakdownOut]
     top_products: list[TopProductOut]
+
+
+# --- Reports ---
+class RevenueByClientOut(BaseModel):
+    client_id: int
+    name: str
+    orders: int
+    revenue: Money
+
+
+class RevenueByCategoryOut(BaseModel):
+    category: str
+    revenue: Money
+    units: int
+
+
+class StatusTrendPointOut(BaseModel):
+    month: str
+    created: int
+    paid: int
+    shipped: int
+    completed: int
+    cancelled: int
+
+
+class ReportsOut(BaseModel):
+    sales_by_month: list[RevenuePointOut]
+    revenue_by_client: list[RevenueByClientOut]
+    revenue_by_category: list[RevenueByCategoryOut]
+    status_trend: list[StatusTrendPointOut]
+
+
+# --- Activity / audit log ---
+class ActivityEventOut(BaseModel):
+    id: str
+    type: str  # order | client | product | system
+    title: str
+    detail: str
+    severity: str  # info | success | warning
+    at: str

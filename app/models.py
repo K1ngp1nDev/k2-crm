@@ -20,6 +20,7 @@ class Client(db.Model):
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     email: Mapped[str | None] = mapped_column(String(255), nullable=True)
     phone: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    note: Mapped[str | None] = mapped_column(String(500), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_utcnow, nullable=False
     )
@@ -35,10 +36,21 @@ class Product(db.Model):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     sku: Mapped[str | None] = mapped_column(String(64), unique=True, nullable=True)
+    category: Mapped[str] = mapped_column(String(64), nullable=False, default="General")
     price: Mapped[Decimal] = mapped_column(Money, nullable=False)
+    stock: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    reorder_threshold: Mapped[int] = mapped_column(Integer, nullable=False, default=10)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_utcnow, nullable=False
     )
+
+    @property
+    def stock_status(self) -> str:
+        if self.stock == 0:
+            return "Out of stock"
+        if self.stock <= self.reorder_threshold:
+            return "Low stock"
+        return "OK"
 
 
 class Order(db.Model):

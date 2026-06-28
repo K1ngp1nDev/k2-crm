@@ -86,3 +86,29 @@ def stats():
 @api_bp.get("/analytics")
 def analytics():
     return jsonify(_dump(schemas.AnalyticsOut.model_validate(services.get_analytics())))
+
+
+@api_bp.get("/reports")
+def reports():
+    return jsonify(_dump(schemas.ReportsOut.model_validate(services.get_reports())))
+
+
+@api_bp.get("/activity")
+def activity():
+    events = services.list_activity()
+    return jsonify([_dump(schemas.ActivityEventOut.model_validate(e)) for e in events])
+
+
+@api_bp.patch("/products/<int:product_id>/stock")
+def adjust_stock(product_id: int):
+    data = schemas.StockAdjust.model_validate(_json_body())
+    product = services.adjust_product_stock(product_id, data.stock)
+    return jsonify(_dump(schemas.ProductOut.model_validate(product)))
+
+
+@api_bp.post("/reset")
+def reset_demo():
+    import seed
+
+    seed.run()
+    return jsonify({"status": "ok"})

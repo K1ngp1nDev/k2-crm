@@ -5,6 +5,7 @@ export interface Client {
   name: string
   email: string | null
   phone: string | null
+  note: string | null
   created_at: string
 }
 
@@ -12,7 +13,11 @@ export interface Product {
   id: number
   name: string
   sku: string | null
+  category: string
   price: string
+  stock: number
+  reorder_threshold: number
+  stock_status: 'OK' | 'Low stock' | 'Out of stock'
   created_at: string
 }
 
@@ -50,7 +55,10 @@ export interface ClientCreate {
 export interface ProductCreate {
   name: string
   sku?: string | null
+  category?: string
   price: string
+  stock?: number
+  reorder_threshold?: number
 }
 
 export interface OrderItemCreate {
@@ -105,4 +113,44 @@ export interface Analytics {
   revenue_by_month: RevenuePoint[]
   orders_by_status: StatusBreakdown[]
   top_products: TopProduct[]
+}
+
+// --- Reports ---
+export interface RevenueByClient {
+  client_id: number
+  name: string
+  orders: number
+  revenue: string
+}
+
+export interface RevenueByCategory {
+  category: string
+  revenue: string
+  units: number
+}
+
+export interface StatusTrendPoint {
+  month: string
+  created: number
+  paid: number
+  shipped: number
+  completed: number
+  cancelled: number
+}
+
+export interface Reports {
+  sales_by_month: RevenuePoint[]
+  revenue_by_client: RevenueByClient[]
+  revenue_by_category: RevenueByCategory[]
+  status_trend: StatusTrendPoint[]
+}
+
+// --- Activity ---
+export interface ActivityEvent {
+  id: string
+  type: 'order' | 'client' | 'product' | 'system'
+  title: string
+  detail: string
+  severity: 'info' | 'success' | 'warning'
+  at: string
 }

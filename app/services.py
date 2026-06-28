@@ -40,8 +40,24 @@ def get_client(client_id: int) -> Client:
 
 # --- Products ---------------------------------------------------------------
 def create_product(data: ProductCreate) -> Product:
-    product = Product(name=data.name, sku=data.sku, price=data.price)
+    product = Product(
+        name=data.name,
+        sku=data.sku,
+        category=data.category,
+        price=data.price,
+        stock=data.stock,
+        reorder_threshold=data.reorder_threshold,
+    )
     db.session.add(product)
+    db.session.commit()
+    return product
+
+
+def adjust_product_stock(product_id: int, stock: int) -> Product:
+    product = db.session.get(Product, product_id)
+    if product is None:
+        raise NotFoundError(f"Product {product_id} not found")
+    product.stock = max(0, stock)
     db.session.commit()
     return product
 
@@ -229,3 +245,127 @@ def get_analytics(months: int = 6, top_n: int = 5) -> dict:
         "orders_by_status": orders_by_status,
         "top_products": top_products,
     }
+
+
+def _iso(dt: datetime) -> str:
+    return (dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)).isoformat()
+
+
+def get_reports(months: int = 6, top_clients: int = 8, top_categories: int = 8) -> dict:
+    """Server-side aggregations for the Reports page."""
+    keys = _recent_month_buckets(months)
+    index = {key: i for i, key in enumerate(keys)}
+    sales = [{"month": key, "revenue": Decimal("0.00"), "orders": 0} for key in keys]
+    statuses = ["created", "paid", "shipped", "completed", "cancelled"]
+    trend = [{"month": key, **{s: 0 for s in statuses}} for key in keys]
+
+    for created_at, status, total in db.session.execute(
+        select(Order.created_at, Order.status, Order.total_amount)
+    ).all():
+        i = index.get(created_at.strftime("%Y-%m"))
+        if i is None:
+            continue
+        if status in trend[i]:
+            trend[i][status] += 1
+        if status != "cancelled":
+            sales[i]["revenue"] += Decimal(total)
+            sales[i]["orders"] += 1
+
+    client_rows = db.session.execute(
+        select(
+            Client.id,
+            Client.name,
+            func.count(Order.id),
+            func.coalesce(func.sum(Order.total_amount), 0),
+        )
+        .join(Order, Order.client_id == Client.id)
+        .where(Order.status != "cancelled")
+        .group_by(Client.id, Client.name)
+        .order_by(func.coalesce(func.sum(Order.total_amount), 0).desc())
+        .limit(top_clients)
+    ).all()
+    revenue_by_client = [
+        {"client_id": cid, "name": name, "orders": int(cnt), "revenue": Decimal(rev)}
+        for cid, name, cnt, rev in client_rows
+    ]
+
+    category_rows = db.session.execute(
+        select(
+            Product.category,
+            func.coalesce(func.sum(OrderItem.line_total), 0),
+            func.coalesce(func.sum(OrderItem.quantity), 0),
+        )
+        .join(OrderItem, OrderItem.product_id == Product.id)
+        .join(Order, Order.id == OrderItem.order_id)
+        .where(Order.status != "cancelled")
+        .group_by(Product.category)
+        .order_by(func.coalesce(func.sum(OrderItem.line_total), 0).desc())
+        .limit(top_categories)
+    ).all()
+    revenue_by_category = [
+        {"category": cat, "revenue": Decimal(rev), "units": int(units)}
+        for cat, rev, units in category_rows
+    ]
+
+    return {
+        "sales_by_month": sales,
+        "revenue_by_client": revenue_by_client,
+        "revenue_by_category": revenue_by_category,
+        "status_trend": trend,
+    }
+
+
+def list_activity(limit: int = 30) -> list[dict]:
+    """Synthetic operational activity feed derived from existing records."""
+    events: list[dict] = []
+    clients = {c.id: c.name for c in db.session.scalars(select(Client)).all()}
+
+    for o in db.session.scalars(select(Order).order_by(Order.created_at.desc()).limit(40)):
+        severity = (
+            "warning"
+            if o.status == "cancelled"
+            else "success"
+            if o.status in ("completed", "shipped")
+            else "info"
+        )
+        events.append(
+            {
+                "id": f"order-{o.id}",
+                "type": "order",
+                "title": f"Order #{o.id} — {o.status}",
+                "detail": f"{clients.get(o.client_id, 'Client')} · {Decimal(o.total_amount):.2f}",
+                "severity": severity,
+                "at": _iso(o.created_at),
+            }
+        )
+
+    for c in db.session.scalars(select(Client).order_by(Client.created_at.desc()).limit(6)):
+        events.append(
+            {
+                "id": f"client-{c.id}",
+                "type": "client",
+                "title": "Client added",
+                "detail": c.name,
+                "severity": "info",
+                "at": _iso(c.created_at),
+            }
+        )
+
+    now_iso = _iso(datetime.now(timezone.utc))
+    low = db.session.scalars(
+        select(Product).where(Product.stock <= Product.reorder_threshold).limit(8)
+    ).all()
+    for p in low:
+        events.append(
+            {
+                "id": f"lowstock-{p.id}",
+                "type": "system",
+                "title": "Low stock alert",
+                "detail": f"{p.name} — {p.stock} left (threshold {p.reorder_threshold})",
+                "severity": "warning",
+                "at": now_iso,
+            }
+        )
+
+    events.sort(key=lambda e: e["at"], reverse=True)
+    return events[:limit]

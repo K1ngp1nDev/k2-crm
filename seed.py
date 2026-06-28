@@ -67,10 +67,40 @@ def run() -> None:
         rng = random.Random(42)
         now = datetime.now(timezone.utc)
 
-        clients = [Client(name=n, email=e, phone=p) for n, e, p in CLIENTS]
+        notes = [
+            "Key account — quarterly review",
+            "Net-30 payment terms",
+            "Prefers email contact",
+            "High growth potential",
+            None,
+            None,
+        ]
+        clients = [Client(name=n, email=e, phone=p, note=rng.choice(notes)) for n, e, p in CLIENTS]
         db.session.add_all(clients)
 
-        products = [Product(name=n, sku=s, price=Decimal(p)) for n, s, p in PRODUCTS]
+        category_by_prefix = {
+            "NB": "Laptops",
+            "MON": "Monitors",
+            "ACC": "Accessories",
+            "FUR": "Furniture",
+            "NET": "Networking",
+            "STO": "Storage",
+            "PRN": "Printers",
+        }
+        products = []
+        for n, s, p in PRODUCTS:
+            reorder = rng.randint(8, 25)
+            stock = rng.choice([0, rng.randint(1, reorder), rng.randint(reorder + 1, 130), rng.randint(reorder + 1, 130)])
+            products.append(
+                Product(
+                    name=n,
+                    sku=s,
+                    category=category_by_prefix.get(s.split("-")[0], "General"),
+                    price=Decimal(p),
+                    stock=stock,
+                    reorder_threshold=reorder,
+                )
+            )
         db.session.add_all(products)
         db.session.flush()  # assign ids
 

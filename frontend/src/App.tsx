@@ -5,8 +5,18 @@ import { DashboardView } from './views/DashboardView'
 import { ClientsView } from './views/ClientsView'
 import { ProductsView } from './views/ProductsView'
 import { OrdersView } from './views/OrdersView'
+import { ReportsView } from './views/ReportsView'
+import { ActivityView } from './views/ActivityView'
+import { SettingsView } from './views/SettingsView'
 
-export type View = 'dashboard' | 'clients' | 'products' | 'orders'
+export type View =
+  | 'dashboard'
+  | 'clients'
+  | 'products'
+  | 'orders'
+  | 'reports'
+  | 'activity'
+  | 'settings'
 
 interface NavItem {
   id: View
@@ -16,19 +26,22 @@ interface NavItem {
 
 const NAV: NavItem[] = [
   { id: 'dashboard', label: 'Overview', icon: 'dashboard' },
-  { id: 'clients', label: 'Clients', icon: 'clients' },
-  { id: 'products', label: 'Products', icon: 'products' },
   { id: 'orders', label: 'Orders', icon: 'orders' },
+  { id: 'clients', label: 'Clients', icon: 'clients' },
+  { id: 'products', label: 'Inventory', icon: 'products' },
+  { id: 'reports', label: 'Reports', icon: 'reports' },
+  { id: 'activity', label: 'Activity', icon: 'activity' },
+  { id: 'settings', label: 'Settings', icon: 'settings' },
 ]
 
 const TITLES: Record<View, { title: string; subtitle: string }> = {
   dashboard: { title: 'Overview', subtitle: 'Key metrics for the order accounting module' },
-  clients: { title: 'Clients', subtitle: 'Company client directory' },
-  products: { title: 'Products', subtitle: 'Product and service catalog' },
-  orders: {
-    title: 'Orders',
-    subtitle: 'Build orders and browse the full order history',
-  },
+  clients: { title: 'Clients', subtitle: 'Company client directory and account detail' },
+  products: { title: 'Inventory', subtitle: 'Catalog, stock levels and reorder status' },
+  orders: { title: 'Orders', subtitle: 'Build orders and browse the full order history' },
+  reports: { title: 'Reports', subtitle: 'Sales, client and category performance' },
+  activity: { title: 'Activity', subtitle: 'Operational events and audit log' },
+  settings: { title: 'Settings', subtitle: 'Business profile and demo controls' },
 }
 
 type ThemePref = 'light' | 'dark' | null
@@ -116,6 +129,9 @@ export default function App() {
           {view === 'clients' && <ClientsView />}
           {view === 'products' && <ProductsView />}
           {view === 'orders' && <OrdersView />}
+          {view === 'reports' && <ReportsView />}
+          {view === 'activity' && <ActivityView />}
+          {view === 'settings' && <SettingsView />}
         </main>
       </div>
     </div>

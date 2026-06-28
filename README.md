@@ -11,12 +11,16 @@ product price at order time — the way real accounting systems work.
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/screenshots/orders-light.png" alt="Order builder and filterable order list" /></td>
-    <td width="50%"><img src="docs/screenshots/dashboard-dark.png" alt="Dashboard in dark theme" /></td>
+    <td width="50%"><img src="docs/screenshots/reports-light.png" alt="Reports — sales, client and category performance" /></td>
+    <td width="50%"><img src="docs/screenshots/client-detail.png" alt="Client detail with tier, revenue and order history" /></td>
   </tr>
   <tr>
-    <td width="50%"><img src="docs/screenshots/products-light.png" alt="Product catalog" /></td>
-    <td width="50%"><img src="docs/screenshots/clients-light.png" alt="Client directory" /></td>
+    <td width="50%"><img src="docs/screenshots/inventory-light.png" alt="Inventory with stock status and filters" /></td>
+    <td width="50%"><img src="docs/screenshots/activity-log.png" alt="Operations activity log" /></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/orders-light.png" alt="Order builder and filterable order list" /></td>
+    <td width="50%"><img src="docs/screenshots/dashboard-dark.png" alt="Dashboard in dark theme" /></td>
   </tr>
 </table>
 
@@ -26,6 +30,16 @@ product price at order time — the way real accounting systems work.
 
 ## Highlights
 
+- **Reports** — sales-by-month, revenue-by-client and revenue-by-category
+  breakdowns, an order-status trend table, and a CSV export.
+- **Client detail** — click any client for a drawer with tier, revenue history,
+  full order history and account notes.
+- **Inventory** — stock levels, reorder thresholds and stock-status badges with
+  low/out-of-stock filters and an in-place stock-adjustment action.
+- **Activity log** — an operational event feed (orders, clients, low-stock
+  alerts) with type filters.
+- **Settings** — business profile, currency/tax display controls, and a
+  one-click demo-data reset.
 - **Analytics dashboard** — KPI cards (revenue, orders, average order value,
   active clients with month-over-month delta), a 6-month revenue trend, an
   orders-by-status donut, and a top-products-by-revenue ranking.
